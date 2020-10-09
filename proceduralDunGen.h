@@ -43,7 +43,6 @@ struct inertPoint pickWall(int **map, const int rows, const int cols)
         c.row = rand() % rows;
         c.col = rand() % cols;
         c.dir = isGoodWall(map, rows, cols, c.row, c.col);
-        if(c.dir != 0) printf("testing direction %d", c.dir);
         if(c.dir) return c; // isGoodWall will return 0 if it doesn't find a good wall, so this will return only if this is a valid direction.
     }
 }
@@ -58,10 +57,10 @@ struct inertPoint follow(struct inertPoint inert, const int tiles)
 
     return inert;
 }
+
 /// Test if a hypothetical path doesn't go out of bounds of the map array.
 int testPath(int **map, int rows, int cols, struct inertPoint inert, int length)
 {
-    puts("Testing path");
     if (length < 1) return 0;
     if (inert.dir == NORTH)
         while(length != 0){
@@ -88,7 +87,6 @@ int testPath(int **map, int rows, int cols, struct inertPoint inert, int length)
             if(inert.col >= (cols - 2)) return 0;
             if(map[inert.row][inert.col] != WALL) return 0;
         }
-    puts("path test failed");
     return 1;
 }
 
@@ -96,6 +94,7 @@ int testPath(int **map, int rows, int cols, struct inertPoint inert, int length)
 void buildPath(int **map, struct inertPoint inert, int length)
 {
     if(length < 1) return;
+
     if (inert.dir == NORTH)
         while(length-- != 0)
             map[inert.row - length][inert.col] = FLOOR;
@@ -130,11 +129,11 @@ int testSurrounding(int **map, int rows, int cols, int row, int col)
          map[row+1][col+1] != WALL
         ) return 0;
 
-    puts("Surrounding is safe.");
     return 1; // Block and all surrounding blocks are wall and thus safe to build on.
 }
 
-/// See if an area in the map is available for a room to be placed
+/// See if an area in the map is available for a room to be placed.
+/// A little helper function looping testSurrounding().
 int testArea(int **map, int rows, int cols, int row, int col, int height, int width)
 {
     for(int i = 0; i < height; i++)
@@ -218,12 +217,11 @@ void buildFeature(int **map, int rows, int cols)
             c = pickWall(map, rows,cols);
             pathLength = (rand() % (MAXPATHLENGTH - MINPATHLENGTH)) + MINPATHLENGTH;
 
-        } while(!testPath(map, rows, cols, c, pathLength));
+        } while(!testPath(map, rows, cols, c, pathLength)); // Keep testing random paths until a suitable is found.
 
         startOfRoom = follow(c, pathLength);
-    } while(!buildRoom(map, rows, cols, startOfRoom));
+    } while(!buildRoom(map, rows, cols, startOfRoom)); // Keep trying out room configurations until a suitable is found.
 
-    puts("Room built!");
     buildPath(map, c, pathLength);
 }
 
