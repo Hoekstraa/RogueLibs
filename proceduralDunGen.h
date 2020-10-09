@@ -40,7 +40,7 @@ struct inertPoint{int col; int row; int dir;} inertPoint;
 
 struct inertPoint pickWall(int **map, const int rows, const int cols)
 {
-   struct inertPoint c; 
+    struct inertPoint c; 
     while(1)
     {
         c.row = rand() % rows;
@@ -61,28 +61,29 @@ struct inertPoint follow(struct inertPoint inert, int tiles)
     return inert;
 }
 /// Test if hypothetical path doesn't go out of bounds of array
-
-/// NOTE: Might want to add structure collision in the future.
-///
-int testPath(int **map, struct inertPoint inert, int length)
+int testPath(int **map, int rows, int cols, struct inertPoint inert, int length)
 {
     if (length < 1) return 0;
     if (inert.dir == NORTH)
-        while(inert.row-- != 0 && length != 0)
+        while(length != 0){
+            if(inert.row-- <= 1) return 0;
             if(map[inert.row - length--][inert.col] != WALL) return 0;
-
+        }
     if (inert.dir == SOUTH)
-        while(inert.row++ != 0 && length != 0)
+        while(length != 0){
+            if(inert.row++ >= (rows - 2)) return 0;
             if(map[inert.row + length--][inert.col] != WALL) return 0;
-
+        }
     if (inert.dir == WEST)
-        while(inert.col-- != 0 && length != 0)
+        while(length != 0){
+            if(inert.col-- <= 1) return 0;
             if(map[inert.row][inert.col - length--] != WALL) return 0;
-
+        }
     if (inert.dir == EAST)
-        while(inert.col++ != 0 && length != 0)
+        while(length != 0){
+            if(inert.col++ >= (cols - 2)) return 0;
             if(map[inert.row][inert.col + length--] != WALL) return 0;
-
+        }
     return 1;
 }
 
@@ -146,64 +147,63 @@ int buildRoom(int **map, int rows, int cols, struct inertPoint inert)
     puts("Testing a room...");
     int height = (rand() % (MAXROOMSIZE - MINROOMSIZE)) + MINROOMSIZE;
     int width = (rand() % (MAXROOMSIZE - MINROOMSIZE)) + MINROOMSIZE;
-///*
+    ///*
     if(inert.dir == NORTH)
     {
         int offset = rand() % (width/2 - 1); // To move the room a bit so the path isn't always in a corner
-         
+
         printf("%d, %d, %d, %d, %d\n", inert.row, inert.col, height, width, inert.row - height + 1);
-         if(testArea(map, rows, cols, inert.row - height + 1, inert.col, height, width))
-         {
+        if(testArea(map, rows, cols, inert.row - height + 1, inert.col, height, width))
+        {
             puts("Area is safe to build in!");
             fillRectangle(map, inert.row - height + 1, inert.col, height, width, FLOOR);
             puts("Scraped out room!");
             return 1;
-         }
+        }
     }
     //*/
     /*
-    if(inert.dir == SOUTH)
-    {
-        int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
+       if(inert.dir == SOUTH)
+       {
+       int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
 
-         if(testArea(map, rows, cols, inert.row, inert.col, height, width))
-         {
-            puts("Area is safe to build in!");
-            fillRectangle(map, inert.row, inert.col, width, height, FLOOR);
-            puts("Scraped out room!");
-            return 1;
-         }
-    }
-    */
+       if(testArea(map, rows, cols, inert.row, inert.col, height, width))
+       {
+       puts("Area is safe to build in!");
+       fillRectangle(map, inert.row, inert.col, width, height, FLOOR);
+       puts("Scraped out room!");
+       return 1;
+       }
+       }
+       */
     /*
-    if(inert.dir == WEST)
-    {
-        int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
-         
-        printf("%d, %d, %d, %d, %d\n", inert.row, inert.col - width, height, width, inert.row);
-         if(testArea(map, rows, cols, inert.row, inert.col - (width*2), height, width))
-         {
-            puts("Area is safe to build in!");
-            fillRectangle(map, inert.row, inert.col - (width *2), height, width, FLOOR);
-            puts("Scraped out room!");
-            return 1;
-         }
-    }
-    */
-///*
+       if(inert.dir == WEST)
+       {
+       int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
+
+       printf("%d, %d, %d, %d, %d\n", inert.row, inert.col - width, height, width, inert.row);
+       if(testArea(map, rows, cols, inert.row, inert.col - (width*2), height, width))
+       {
+       puts("Area is safe to build in!");
+       fillRectangle(map, inert.row, inert.col - (width *2), height, width, FLOOR);
+       puts("Scraped out room!");
+       return 1;
+       }
+       }
+       */
+    ///*
     if(inert.dir == EAST)
     {
         int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
 
-         if(testArea(map, rows, cols, inert.row - offset, inert.col, height, width))
-         {
+        if(testArea(map, rows, cols, inert.row - offset, inert.col, height, width))
+        {
             puts("Area is safe to build in!");
             fillRectangle(map, inert.row - offset, inert.col, width, height, FLOOR);
             puts("Scraped out room!");
             return 1;
-         }
+        }
     }
-//*/
     return 0;
 }
 
@@ -212,13 +212,13 @@ void buildFeature(int **map, int rows, int cols)
     struct inertPoint c;
     int pathLength;
     struct inertPoint startOfRoom;
-    
+
     do {
         do {
             c = pickWall(map, rows,cols);
             pathLength = (rand() % (MAXPATHLENGTH - MINPATHLENGTH)) + MINPATHLENGTH;
 
-        } while(!testPath(map, c, pathLength));
+        } while(!testPath(map, rows, cols, c, pathLength));
 
         printf("Good path of length %d\n", pathLength);
         startOfRoom = follow(c, pathLength);
@@ -243,5 +243,8 @@ void generate(int **map, const int rows, const int cols)
     puts("Making beginning room..");
     fillRectangle(map, rows/2, cols/2, rand()%12 + MINROOMSIZE, rand()%10 + MINROOMSIZE, FLOOR);
     puts("Made beginning room");
+    buildFeature(map, rows, cols);
+    buildFeature(map, rows, cols);
+    buildFeature(map, rows, cols);
     buildFeature(map, rows, cols);
 }
