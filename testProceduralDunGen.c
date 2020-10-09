@@ -20,7 +20,7 @@ int main()
     {
         for(int j = 0; j < cols; j++)
             if(map[i][j] == 0)
-                printf("%d", map[i][j]);
+                printf("█", map[i][j]);
             else
                 printf(" ");
         puts("");

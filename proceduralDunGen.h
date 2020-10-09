@@ -20,19 +20,19 @@ void fillRectangle(int **map, int row, int col, int height, int width, enum tile
 
 enum direction {NORTH = 1, EAST = 2, SOUTH = 3, WEST = 4} direction;
 
-int isGoodWall(int **map, const int mapwidth, const int mapheight, const int row, const int col)
+int isGoodWall(int **map, const int mapheight, const int mapwidth, const int row, const int col)
 {
-    if(map[row][col] != WALL) return 0;
-    // prevent underflow, check one up for open tile (which means a room is there, so go the other way)
-    if(row > 0 && map[row-1][col] == FLOOR) return SOUTH;
-    //prevent underflow, check one tile to the left
-    if(col > 0 && map[row][col-1] == FLOOR) return EAST;
-    //prevent overflow, check one tile down
-    if(row < mapwidth - 1 && map[row+1][col] == FLOOR) return NORTH;
-    //prevent overflow, check one tile right
-    if(col < mapwidth - 1 && map[row][col+1] == FLOOR) return WEST;
+    if(row < 1 || row > (mapheight - 2) || col < 1 || col > (mapwidth -2) || map[row][col] != WALL) return 0;
 
-    //puts("Not good!");
+    // prevent underflow, check one up for open tile (which means a room is there, so go the other way)
+    if(map[row-1][col] == FLOOR) return SOUTH;
+    //prevent underflow, check one tile to the left
+    if(map[row][col-1] == FLOOR) return EAST;
+    //prevent overflow, check one tile down
+    if(map[row+1][col] == FLOOR) return NORTH;
+    //prevent overflow, check one tile right
+    if(map[row][col+1] == FLOOR) return WEST;
+
     return 0;
 }
 
@@ -46,12 +46,13 @@ struct inertPoint pickWall(int **map, const int rows, const int cols)
         c.row = rand() % rows;
         c.col = rand() % cols;
         c.dir = isGoodWall(map, rows, cols, c.row, c.col);
+        if(c.dir != 0) printf("testing direction %d", c.dir);
         if(c.dir) return c; // isGoodWall will return 0 if it doesn't find a good will, so this is a tiny hack
     }
 }
 
 /// Step 'tiles' amount of tiles in the direction of inert
-struct inertPoint follow(struct inertPoint inert, int tiles)
+struct inertPoint follow(struct inertPoint inert, const int tiles)
 {
     if (inert.dir == NORTH) inert.row = inert.row - tiles;
     if (inert.dir == SOUTH) inert.row = inert.row + tiles;
@@ -63,27 +64,34 @@ struct inertPoint follow(struct inertPoint inert, int tiles)
 /// Test if hypothetical path doesn't go out of bounds of array
 int testPath(int **map, int rows, int cols, struct inertPoint inert, int length)
 {
+    puts("Testing path");
     if (length < 1) return 0;
     if (inert.dir == NORTH)
         while(length != 0){
-            if(inert.row-- <= 1) return 0;
-            if(map[inert.row - length--][inert.col] != WALL) return 0;
+            --inert.row; --length;
+            if(inert.row <= 1) return 0;
+            if(map[inert.row][inert.col] != WALL) return 0;
+
         }
     if (inert.dir == SOUTH)
         while(length != 0){
-            if(inert.row++ >= (rows - 2)) return 0;
-            if(map[inert.row + length--][inert.col] != WALL) return 0;
+            ++inert.row; --length;
+            if(inert.row >= (rows - 2)) return 0;
+            if(map[inert.row][inert.col] != WALL) return 0;
         }
     if (inert.dir == WEST)
         while(length != 0){
-            if(inert.col-- <= 1) return 0;
-            if(map[inert.row][inert.col - length--] != WALL) return 0;
+            --inert.col; --length;
+            if(inert.col <= 1) return 0;
+            if(map[inert.row][inert.col] != WALL) return 0;
         }
     if (inert.dir == EAST)
         while(length != 0){
-            if(inert.col++ >= (cols - 2)) return 0;
-            if(map[inert.row][inert.col + length--] != WALL) return 0;
+            ++inert.col; --length;
+            if(inert.col >= (cols - 2)) return 0;
+            if(map[inert.row][inert.col] != WALL) return 0;
         }
+    puts("path test failed");
     return 1;
 }
 
@@ -105,7 +113,6 @@ void buildPath(int **map, struct inertPoint inert, int length)
             map[inert.row][inert.col + length] = FLOOR;
 }
 
-
 /// See if the block and surrounding blocks are available.
 //
 // Used to make sure a room can be placed.
@@ -124,7 +131,7 @@ int testSurrounding(int **map, int rows, int cols, int row, int col)
     if(row > 0  && col < col-1 && map[row-1][col+1] != WALL) return 0;// Test that block right/up is available
     if(row < row-1  && col > 0 && map[row+1][col-1] != WALL) return 0;// Test that block left/down is available
     if(row < row-1  && col < col-1 && map[row+1][col+1] != WALL) return 0;// Test that block right/down is available
-
+    puts("Surrounding is safe.");
     return 1; // Block and all surrounding blocks are wall and thus safe to build on.
 }
 
@@ -144,10 +151,10 @@ int testArea(int **map, int rows, int cols, int row, int col, int height, int wi
 
 int buildRoom(int **map, int rows, int cols, struct inertPoint inert)
 {
-    puts("Testing a room...");
+    printf("Testing a room at [%d][%d] towards %d\n", inert.row, inert.col,inert.dir);
     int height = (rand() % (MAXROOMSIZE - MINROOMSIZE)) + MINROOMSIZE;
     int width = (rand() % (MAXROOMSIZE - MINROOMSIZE)) + MINROOMSIZE;
-    ///*
+
     if(inert.dir == NORTH)
     {
         int offset = rand() % (width/2 - 1); // To move the room a bit so the path isn't always in a corner
@@ -161,49 +168,49 @@ int buildRoom(int **map, int rows, int cols, struct inertPoint inert)
             return 1;
         }
     }
-    //*/
-    /*
-       if(inert.dir == SOUTH)
-       {
-       int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
 
-       if(testArea(map, rows, cols, inert.row, inert.col, height, width))
-       {
-       puts("Area is safe to build in!");
-       fillRectangle(map, inert.row, inert.col, width, height, FLOOR);
-       puts("Scraped out room!");
-       return 1;
-       }
-       }
-       */
-    /*
-       if(inert.dir == WEST)
-       {
-       int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
-
-       printf("%d, %d, %d, %d, %d\n", inert.row, inert.col - width, height, width, inert.row);
-       if(testArea(map, rows, cols, inert.row, inert.col - (width*2), height, width))
-       {
-       puts("Area is safe to build in!");
-       fillRectangle(map, inert.row, inert.col - (width *2), height, width, FLOOR);
-       puts("Scraped out room!");
-       return 1;
-       }
-       }
-       */
-    ///*
-    if(inert.dir == EAST)
+    if(inert.dir == SOUTH)
     {
         int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
 
-        if(testArea(map, rows, cols, inert.row - offset, inert.col, height, width))
+        printf("%d, %d, %d, %d\n", inert.row, inert.col, height, width);
+        if(testArea(map, rows, cols, inert.row, inert.col, height, width))
         {
             puts("Area is safe to build in!");
-            fillRectangle(map, inert.row - offset, inert.col, width, height, FLOOR);
+            fillRectangle(map, inert.row, inert.col, height, width, FLOOR);
             puts("Scraped out room!");
             return 1;
         }
     }
+
+    if(inert.dir == WEST)
+    {
+        int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
+
+        printf("%d, %d, %d, %d, %d\n", inert.row, inert.col - width + 1, height, width, inert.row);
+        if(testArea(map, rows, cols, inert.row, inert.col - width + 1, height, width))
+        {
+            puts("Area is safe to build in!");
+            fillRectangle(map, inert.row, inert.col - width + 1, height, width, FLOOR);
+            puts("Scraped out room!");
+            return 1;
+        }
+    }
+
+    if(inert.dir == EAST)
+    {
+        int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
+
+        printf("%d, %d, %d, %d\n", inert.row - offset, inert.col, height, width);
+        if(testArea(map, rows, cols, inert.row - offset, inert.col, height, width))
+        {
+            puts("Area is safe to build in!");
+            fillRectangle(map, inert.row - offset, inert.col, height, width, FLOOR);
+            puts("Scraped out room!");
+            return 1;
+        }
+    }
+
     return 0;
 }
 
@@ -223,7 +230,7 @@ void buildFeature(int **map, int rows, int cols)
         printf("Good path of length %d\n", pathLength);
         startOfRoom = follow(c, pathLength);
     } while(!buildRoom(map, rows, cols, startOfRoom));
-    printf("Room built!");
+    puts("Room built!");
     buildPath(map, c, pathLength);
 }
 
@@ -243,8 +250,6 @@ void generate(int **map, const int rows, const int cols)
     puts("Making beginning room..");
     fillRectangle(map, rows/2, cols/2, rand()%12 + MINROOMSIZE, rand()%10 + MINROOMSIZE, FLOOR);
     puts("Made beginning room");
-    buildFeature(map, rows, cols);
-    buildFeature(map, rows, cols);
-    buildFeature(map, rows, cols);
-    buildFeature(map, rows, cols);
+
+    for(int i = 0; i < 40; i++) buildFeature(map, rows, cols);
 }
