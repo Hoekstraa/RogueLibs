@@ -151,19 +151,19 @@ int testArea(int **map, int rows, int cols, int row, int col, int height, int wi
 
 int buildRoom(int **map, int rows, int cols, struct inertPoint inert)
 {
-    printf("Testing a room at [%d][%d] towards %d\n", inert.row, inert.col,inert.dir);
+    //printf("Testing a room at [%d][%d] towards %d\n", inert.row, inert.col,inert.dir);
     int height = (rand() % (MAXROOMSIZE - MINROOMSIZE)) + MINROOMSIZE;
     int width = (rand() % (MAXROOMSIZE - MINROOMSIZE)) + MINROOMSIZE;
 
     if(inert.dir == NORTH)
     {
-        int offset = rand() % (width/2 - 1); // To move the room a bit so the path isn't always in a corner
+        int offset = rand() % (width - 1); // To move the room a bit so the path isn't always in a corner
 
-        printf("%d, %d, %d, %d, %d\n", inert.row, inert.col, height, width, inert.row - height + 1);
-        if(testArea(map, rows, cols, inert.row - height + 1, inert.col, height, width))
+        //printf("%d, %d, %d, %d, %d\n", inert.row, inert.col + offset, height, width, inert.row - height + 1);
+        if(testArea(map, rows, cols, inert.row - height + 1, inert.col - offset, height, width))
         {
             puts("Area is safe to build in!");
-            fillRectangle(map, inert.row - height + 1, inert.col, height, width, FLOOR);
+            fillRectangle(map, inert.row - height + 1, inert.col - offset, height, width, FLOOR);
             puts("Scraped out room!");
             return 1;
         }
@@ -171,13 +171,13 @@ int buildRoom(int **map, int rows, int cols, struct inertPoint inert)
 
     if(inert.dir == SOUTH)
     {
-        int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
+        int offset = rand() % (width - 1); // To move the room a bit so the path isn't always in a corner
 
-        printf("%d, %d, %d, %d\n", inert.row, inert.col, height, width);
-        if(testArea(map, rows, cols, inert.row, inert.col, height, width))
+        //printf("%d, %d, %d, %d\n", inert.row, inert.col - offset, height, width);
+        if(testArea(map, rows, cols, inert.row, inert.col - offset, height, width))
         {
             puts("Area is safe to build in!");
-            fillRectangle(map, inert.row, inert.col, height, width, FLOOR);
+            fillRectangle(map, inert.row, inert.col - offset, height, width, FLOOR);
             puts("Scraped out room!");
             return 1;
         }
@@ -185,13 +185,13 @@ int buildRoom(int **map, int rows, int cols, struct inertPoint inert)
 
     if(inert.dir == WEST)
     {
-        int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
+        int offset = rand() % (height - 1); // To move the room a bit so the path isn't always in a corner
 
-        printf("%d, %d, %d, %d, %d\n", inert.row, inert.col - width + 1, height, width, inert.row);
-        if(testArea(map, rows, cols, inert.row, inert.col - width + 1, height, width))
+        //printf("%d, %d, %d, %d, %d\n", inert.row + offset, inert.col - width + 1, height, width, inert.row);
+        if(testArea(map, rows, cols, inert.row - offset, inert.col - width + 1, height, width))
         {
             puts("Area is safe to build in!");
-            fillRectangle(map, inert.row, inert.col - width + 1, height, width, FLOOR);
+            fillRectangle(map, inert.row - offset, inert.col - width + 1, height, width, FLOOR);
             puts("Scraped out room!");
             return 1;
         }
@@ -199,9 +199,9 @@ int buildRoom(int **map, int rows, int cols, struct inertPoint inert)
 
     if(inert.dir == EAST)
     {
-        int offset = rand() % (height/2 - 1); // To move the room a bit so the path isn't always in a corner
+        int offset = rand() % (height - 1); // To move the room a bit so the path isn't always in a corner
 
-        printf("%d, %d, %d, %d\n", inert.row - offset, inert.col, height, width);
+        //printf("%d, %d, %d, %d\n", inert.row - offset, inert.col, height, width);
         if(testArea(map, rows, cols, inert.row - offset, inert.col, height, width))
         {
             puts("Area is safe to build in!");
