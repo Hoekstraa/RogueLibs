@@ -1,4 +1,4 @@
-#include "distanceFlooder.h"
+#include "directionFlooder.h"
 
 int main()
 {
@@ -34,10 +34,8 @@ int main()
     for(int i = 0; i < rows; i++)
     {
         for(int j = 0; j < cols; j++)
-            if(distanceMap[i][j] == WALL)
+            if(distanceMap[i][j] == 0)
                 printf("█");
-            else if (distanceMap[i][j] == FLOOR)
-                printf(" ");
             else
                 printf("%d", distanceMap[i][j]);
         printf("\n");
