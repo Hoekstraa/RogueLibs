@@ -5,8 +5,9 @@
 #define MAXPATHLENGTH 10
 #define MINROOMSIZE 4
 #define MAXROOMSIZE 12
+#define AMOUNTOFROOMS 36
 
-enum tile {WALL, FLOOR} tile;
+enum tile {WALL = -1, FLOOR = -2} tile;
 enum direction {NORTH = 1, EAST = 2, SOUTH = 3, WEST = 4} direction;
 struct inertPoint{int col; int row; int dir;} inertPoint;
 
@@ -228,14 +229,14 @@ void buildFeature(int **map, int rows, int cols)
 /// Takes a 2d int array and generates a random dungeon in it.
 void generate(int **map, const int rows, const int cols)
 {
-    //Cleans array, in case a dirty array is put in.
+    // Fills array with wall tiles
     for (int i = 0; i < rows; i++)
         for(int j = 0; j < cols; j++)
-            map[i][j] = 0;
+            map[i][j] = WALL;
 
     //start with a random rectangle somewhat in the middle
     fillRectangle(map, rows/2, cols/2, rand()%12 + MINROOMSIZE, rand()%10 + MINROOMSIZE, FLOOR);
 
     // Generate rooms around it
-    for(int i = 0; i < 40; i++) buildFeature(map, rows, cols);
+    for(int i = 0; i < AMOUNTOFROOMS; i++) buildFeature(map, rows, cols);
 }
