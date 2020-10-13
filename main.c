@@ -15,7 +15,13 @@ const int rows = 50, cols = 100; // Size of map
 int **map; // Global map
 
 SDL_Texture *textures[10];
-enum texture{WALLTEX = 0, PLAYERTEX};
+enum texture{WALLTEX = 0, PLAYERTEX=1};
+
+struct Player
+{
+    int x;
+    int y;
+} *player;
 
 void initSDL()
 {
@@ -26,7 +32,7 @@ void initSDL()
         exit(1);
     }
     //Create window
-    window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN );
+    window = SDL_CreateWindow("Rogey", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN );
     if( window == 0 )
     {
         printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
@@ -34,7 +40,7 @@ void initSDL()
         exit(2);
     }
 
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if( renderer == 0 )
     {
         printf( "Renderer could not be created! SDL_Error: %s\n", SDL_GetError() );
@@ -88,13 +94,58 @@ void loadTextures()
     SDL_Surface *bmps = SDL_LoadBMP("img/wall.bmp");
     SDL_Texture *bmpt = SDL_CreateTextureFromSurface(renderer, bmps);
     SDL_FreeSurface(bmps);
-    textures[0] = bmpt;
+    textures[WALLTEX] = bmpt;
 
-    bmps = SDL_LoadBMP("img/player.bmp");
-    bmpt = SDL_CreateTextureFromSurface(renderer, bmps);
-    SDL_FreeSurface(bmps);
-    textures[1] = bmpt;
+    //Make player texture
+    SDL_Surface *bmps2 = SDL_LoadBMP("img/player.bmp");
+    SDL_Texture *bmpt2 = SDL_CreateTextureFromSurface(renderer, bmps2);
+    SDL_FreeSurface(bmps2);
+    textures[PLAYERTEX] = bmpt2;
+}
 
+void spawnPlayer()
+{
+    player = malloc(sizeof(struct Player));
+    int spawnCol;
+    int spawnRow;
+    while(1)
+    {
+        spawnRow = rand() % rows;
+        spawnCol = rand() % cols;
+        if(map[spawnRow][spawnCol] == FLOOR)
+        {
+            player->y = spawnRow;
+            player->x = spawnCol;
+            break;
+        }
+    }
+}
+
+void movePlayer(int direction)
+{
+    if (direction == NORTH)
+        if(map[player->y - 1][player->x] != WALL)
+            player->y = player->y - 1;
+
+    if (direction == SOUTH)
+        if(map[player->y + 1][player->x] != WALL)
+            player->y = player->y + 1;
+
+    if (direction == WEST)
+        if(map[player->y][player->x - 1] != WALL)
+            player->x = player->x - 1;
+
+    if (direction == EAST)
+        if(map[player->y][player->x + 1] != WALL)
+            player->x = player->x + 1;
+}
+
+void handleKey(SDL_Keycode key)
+{
+    if (key == SDLK_UP) movePlayer(NORTH);
+    if (key == SDLK_DOWN) movePlayer(SOUTH);
+    if (key == SDLK_LEFT) movePlayer(WEST);
+    if (key == SDLK_RIGHT) movePlayer(EAST);
 }
 
 int handleEvents()
@@ -106,17 +157,32 @@ int handleEvents()
         if (event.type == SDL_QUIT)
             // Break out of the gameloop on quit
             return 0;
+        if (event.type == SDL_KEYDOWN)
+        {
+            if(event.key.keysym.sym == SDLK_q)
+                return 0;
+            else
+                handleKey(event.key.keysym.sym);
+        }
     }
-
     return 1;
 }
 
 void render()
 {
-        SDL_RenderClear(renderer);
-        const SDL_Rect mapRect = {0,0,cols*TILESIZE,rows*TILESIZE};
-        SDL_RenderCopy(renderer, mapTexture,&mapRect,&mapRect);
-        SDL_RenderPresent(renderer);
+    SDL_RenderClear(renderer);
+
+    // Render map texture
+    const SDL_Rect mapRect = {0,0,cols*TILESIZE,rows*TILESIZE};
+    SDL_RenderCopy(renderer, mapTexture,&mapRect,&mapRect);
+
+    // Render player
+    const SDL_Rect bmpRect = {0,0,TILESIZE,TILESIZE};
+    const SDL_Rect destRect = {(player->x)*TILESIZE,(player->y)*TILESIZE,TILESIZE,TILESIZE};
+    SDL_RenderCopy(renderer, textures[PLAYERTEX], &bmpRect, &destRect);
+
+    // Present to screen
+    SDL_RenderPresent(renderer);
 }
 
 int main(int argc, char ** argv)
@@ -125,10 +191,11 @@ int main(int argc, char ** argv)
     initSDL();
     loadTextures();
     createDungeon();
+    spawnPlayer();
+
     while (1)
     {
         if (handleEvents() == 0) break;
-
         render();
     }
 
