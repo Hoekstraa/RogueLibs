@@ -1,5 +1,6 @@
 #include<stdlib.h>
 #include<stdio.h>
+#include "datatypes.h"
 
 #define MINPATHLENGTH 2
 #define MAXPATHLENGTH 10
@@ -7,8 +8,6 @@
 #define MAXROOMSIZE 12
 #define AMOUNTOFROOMS 36
 
-enum tile {WALL = -1, FLOOR = -2} tile;
-enum direction {NORTH = 1, EAST = 2, SOUTH = 3, WEST = 4} direction;
 struct inertPoint{int col; int row; int dir;} inertPoint;
 
 /// Naively fill a rectangle of height & width at map[row][col] with floortype.

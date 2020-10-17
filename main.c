@@ -1,5 +1,8 @@
 #include <SDL2/SDL.h>
+#include "lib/borrowed/queue.h"
 #include "lib/proceduralDunGen.h"
+#include "lib/directionFlooder.h"
+#include "lib/datatypes.h"
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -17,13 +20,27 @@ const int rows = 50, cols = 100; // Size of map
 int **map; // Global map
 
 SDL_Texture *textures[10];
-enum texture{WALLTEX = 0, PLAYERTEX=1};
+enum texture{WALLTEX = 0, PLAYERTEX=1, ENEMYTEX=2};
 
 struct Player
 {
-    int x;
-    int y;
+    coord c;
 } *player;
+
+///Enemy related////////////////////////
+typedef struct Entity
+{
+    coord c;
+    int damage;
+    int texture;
+} Entity;
+
+LIST_HEAD(listhead, listitem) entities;
+struct listitem {
+    Entity entity;
+    LIST_ENTRY(listitem) listitems;
+} *e1, *e2, *ep;
+///////////////////////////////////////
 
 void initSDL()
 {
@@ -103,37 +120,56 @@ void loadTextures()
     SDL_Texture *bmpt2 = SDL_CreateTextureFromSurface(renderer, bmps2);
     SDL_FreeSurface(bmps2);
     textures[PLAYERTEX] = bmpt2;
+
+    //Make player texture
+    SDL_Surface *bmps3 = SDL_LoadBMP("img/snail.bmp");
+    SDL_Texture *bmpt3 = SDL_CreateTextureFromSurface(renderer, bmps3);
+    SDL_FreeSurface(bmps3);
+    textures[ENEMYTEX] = bmpt3;
+}
+
+// Tests wether a coordinate is free to spawn/walk on or not.
+int freeCoord(coord c)
+{
+
+    if(map[c.y][c.x] != FLOOR) return 0;
+    if(player->c.x == c.x && player->c.y == c.y) return 0;
+    LIST_FOREACH(ep, &entities, listitems)
+    {
+        coord ec = ep->entity.c;
+        if(ec.x == c.x && ec.y == c.y) return 0;
+    }
+    return 1;
+}
+
+// Return a coord where an entity (incl. player) could spawn
+coord sprinkle ()
+{
+    coord c;
+    while(1)
+    {
+        c.x = rand() % cols;
+        c.y = rand() % rows;
+
+        if(freeCoord(c)) return c;
+    }
 }
 
 void spawnPlayer()
 {
     player = malloc(sizeof(struct Player));
-    int spawnCol;
-    int spawnRow;
-    while(1)
-    {
-        spawnRow = rand() % rows;
-        spawnCol = rand() % cols;
-        if(map[spawnRow][spawnCol] == FLOOR)
-        {
-            player->y = spawnRow;
-            player->x = spawnCol;
-            break;
-        }
-    }
+    player->c = sprinkle();
 }
 
-typedef struct Entity
+void sprinkleEntities()
 {
-    int x;
-    int y;
-} Entity;
-
-void spawnEntities()
-{
-    struct Entity e;
-    e.x = 0;
-    e.y = 0;
+    for(int i = 0; i < 5; i++)
+    {
+        e1 = malloc(sizeof(struct listitem));	/* Insert at the head. */
+        e1->entity.texture = ENEMYTEX;
+        e1->entity.c = sprinkle();
+        LIST_INSERT_HEAD(&entities, e1, listitems);
+    }
 }
 //-------------------------------------------------------------------------------------
 // From here on out all functions are ran in the gameloop, so performance is important!
@@ -146,21 +182,21 @@ void moveEntities()
 void movePlayer(int direction)
 {
     if (direction == NORTH)
-        if(map[player->y - 1][player->x] != WALL)
-            player->y = player->y - 1;
+        if(map[player->c.y - 1][player->c.x] != WALL)
+            player->c.y = player->c.y - 1;
 
     if (direction == SOUTH)
-        if(map[player->y + 1][player->x] != WALL)
-            player->y = player->y + 1;
+        if(map[player->c.y + 1][player->c.x] != WALL)
+            player->c.y = player->c.y + 1;
 
     if (direction == WEST)
-        if(map[player->y][player->x - 1] != WALL)
-            player->x = player->x - 1;
+        if(map[player->c.y][player->c.x - 1] != WALL)
+            player->c.x = player->c.x - 1;
 
     if (direction == EAST)
-        if(map[player->y][player->x + 1] != WALL)
-            player->x = player->x + 1;
-    
+        if(map[player->c.y][player->c.x + 1] != WALL)
+            player->c.x = player->c.x + 1;
+
     // When the player has moved, the other entities get a turn.
     moveEntities();
 }
@@ -221,8 +257,18 @@ void render()
     // Render player
     {
         const SDL_Rect bmpRect = {0,0,TILESIZE,TILESIZE};
-        const SDL_Rect destRect = {(player->x)*TILESIZE,(player->y)*TILESIZE,TILESIZE,TILESIZE};
+        const SDL_Rect destRect = {(player->c.x)*TILESIZE,(player->c.y)*TILESIZE,TILESIZE,TILESIZE};
         SDL_RenderCopy(renderer, textures[PLAYERTEX], &bmpRect, &destRect);
+    }
+    // Render entities
+    {
+        const SDL_Rect bmpRect = {0,0,TILESIZE,TILESIZE};
+        LIST_FOREACH(ep, &entities, listitems)
+        {
+            coord c = ep->entity.c;
+            const SDL_Rect destRect = {c.x*TILESIZE, c.y*TILESIZE,TILESIZE,TILESIZE};
+            SDL_RenderCopy(renderer, textures[ep->entity.texture], &bmpRect, &destRect);
+        }
     }
 
     // Future render calls render to renderer itself again.
@@ -232,10 +278,10 @@ void render()
     // Render part of temp texture, to scroll with the player as a camera.
     {
         // Determine camera location (incl. clamping boundaries)
-        int camX = player->x*TILESIZE - ((CAMERA_WIDTH*TILESIZE) / 2);
+        int camX = player->c.x*TILESIZE - ((CAMERA_WIDTH*TILESIZE) / 2);
         if(camX < 0) camX = 0;
         if (camX > (cols*TILESIZE - CAMERA_WIDTH*TILESIZE)) camX = cols*TILESIZE - CAMERA_WIDTH*TILESIZE;
-        int camY = player->y*TILESIZE - ((CAMERA_HEIGHT*TILESIZE) / 2);
+        int camY = player->c.y*TILESIZE - ((CAMERA_HEIGHT*TILESIZE) / 2);
         if (camY < 0) camY = 0;
         if(camY > (rows*TILESIZE - CAMERA_HEIGHT*TILESIZE)) camY = rows*TILESIZE - CAMERA_HEIGHT*TILESIZE;
 
@@ -257,6 +303,8 @@ int main(int argc, char ** argv)
     loadTextures();
     createDungeon();
     spawnPlayer();
+    LIST_INIT(&entities);/* Initialize list. */
+    sprinkleEntities();
 
     while (handleEvents())
     {

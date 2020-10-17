@@ -1,12 +1,7 @@
 #include "borrowed/queue.h"
+#include "datatypes.h"
 #include <stdio.h>
 #include <stdlib.h>
-
-#include <unistd.h>
-
-const enum tile {WALL = -1, FLOOR = -2} tile;
-const enum direction {NORTH = 1, EAST = 2, SOUTH = 3, WEST = 4, DESTINATION = 5} direction;
-const typedef struct coord{int row; int col;} coord;
 
 SIMPLEQ_HEAD(simplehead, cNode) coordQ = SIMPLEQ_HEAD_INITIALIZER(coordQ);
 struct cNode
@@ -15,13 +10,12 @@ struct cNode
     SIMPLEQ_ENTRY(cNode) cNodes;
 } *c1, *c2;
 
-
 void enque(const int row, const int col)
 {
     c1 = malloc(sizeof(struct cNode));
     SIMPLEQ_INSERT_TAIL(&coordQ, c1, cNodes);
-    c1->c.row = row;
-    c1->c.col = col;
+    c1->c.y = row;
+    c1->c.x = col;
     printf("Enqued %d,%d ", row, col);
 }
 
@@ -31,14 +25,14 @@ struct coord deque()
         SIMPLEQ_REMOVE_HEAD(&coordQ, cNodes);
         struct coord c = c1->c;
         free(c1);
-        printf("Dequed %d,%d ", c.row, c.col);
+        printf("Dequed %d,%d ", c.y, c.x);
         return c;
 }
 
 /// If a tile is does not have a direction yet, set the direction and add it to the frontier
 void addSurroundingToQ(int **map, int **result, const struct coord c)
 {
-    int row = c.row, col = c.col;
+    int row = c.y, col = c.x;
     if(map[row+1][col] == FLOOR && result[row+1][col] == 0)
     {
         result[row+1][col] = NORTH;
@@ -83,6 +77,6 @@ void flood(int **map, int **result, const int sourceRow, const int sourceCol)
         addSurroundingToQ(map, result, c);
 
         puts("coords in queue:");
-        SIMPLEQ_FOREACH(c2, &coordQ, cNodes) printf("%d,%d\n",c2->c.row, c2->c.col);
+        SIMPLEQ_FOREACH(c2, &coordQ, cNodes) printf("%d,%d\n",c2->c.y, c2->c.x);
     }
 }
