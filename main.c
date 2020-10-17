@@ -6,6 +6,8 @@
 
 #define SCREEN_WIDTH 1600
 #define SCREEN_HEIGHT 900
+#define CAMERA_WIDTH 32 //Amount of tiles
+#define CAMERA_HEIGHT 18 //Amount of tiles
 #define TILESIZE 16
 SDL_Window *window = 0; // Global window
 SDL_Renderer *renderer = 0; // Global renderer
@@ -48,7 +50,7 @@ void initSDL()
         exit(2);
     }
     //SDL_RenderSetIntegerScale(renderer, 1);
-    SDL_RenderSetLogicalSize(renderer, cols*TILESIZE,rows*TILESIZE);
+    SDL_RenderSetLogicalSize(renderer, CAMERA_WIDTH*TILESIZE,CAMERA_HEIGHT*TILESIZE);
 
     mapTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, cols*TILESIZE, rows*TILESIZE);
     if( mapTexture == 0 )
@@ -121,6 +123,11 @@ void spawnPlayer()
     }
 }
 
+void moveEntities()
+{
+
+}
+
 void movePlayer(int direction)
 {
     if (direction == NORTH)
@@ -138,6 +145,8 @@ void movePlayer(int direction)
     if (direction == EAST)
         if(map[player->y][player->x + 1] != WALL)
             player->x = player->x + 1;
+
+    moveEntities();
 }
 
 void handleKey(SDL_Keycode key)
@@ -159,6 +168,7 @@ int handleEvents()
             return 0;
         if (event.type == SDL_KEYDOWN)
         {
+            // Brean out of the gameloop on quit
             if(event.key.keysym.sym == SDLK_q)
                 return 0;
             else
@@ -168,21 +178,58 @@ int handleEvents()
     return 1;
 }
 
+int min(int a, int b){return a < b? a:b;}
+int max(int a, int b){return a > b? a:b;}
+
 void render()
 {
     SDL_RenderClear(renderer);
 
-    // Render map texture
-    const SDL_Rect mapRect = {0,0,cols*TILESIZE,rows*TILESIZE};
+    SDL_Texture *tempTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, cols*TILESIZE, rows*TILESIZE);
+    if( tempTexture == 0 )
+    {
+        printf( "Temporary texture could not be created! SDL_Error: %s\n", SDL_GetError() );
+        SDL_Quit();
+        exit(2);
+    }
+
+    //Temporarily render to texture
+    SDL_SetRenderTarget(renderer, tempTexture);
+    //---------------------------------------------------------------------------------------------------
+
+    //Copy map to temp texture.
+    const SDL_Rect mapRect = {0,0, cols*TILESIZE,rows*TILESIZE};
     SDL_RenderCopy(renderer, mapTexture,&mapRect,&mapRect);
 
     // Render player
     const SDL_Rect bmpRect = {0,0,TILESIZE,TILESIZE};
-    const SDL_Rect destRect = {(player->x)*TILESIZE,(player->y)*TILESIZE,TILESIZE,TILESIZE};
-    SDL_RenderCopy(renderer, textures[PLAYERTEX], &bmpRect, &destRect);
+    const SDL_Rect destRect2 = {(player->x)*TILESIZE,(player->y)*TILESIZE,TILESIZE,TILESIZE};
+    SDL_RenderCopy(renderer, textures[PLAYERTEX], &bmpRect, &destRect2);
+
+
+    // Future render calls render to renderer itself again.
+    SDL_SetRenderTarget(renderer, 0);
+    //---------------------------------------------------------------------------------------------------
+    
+    // Determine camera location (incl. clamping boundaries)
+
+    int camX = player->x*TILESIZE - ((CAMERA_WIDTH*TILESIZE) / 2);
+    if(camX < 0) camX = 0;
+    if (camX > (cols*TILESIZE - CAMERA_WIDTH*TILESIZE)) camX = cols*TILESIZE - CAMERA_WIDTH*TILESIZE;
+    int camY = player->y*TILESIZE - ((CAMERA_HEIGHT*TILESIZE) / 2);
+    if (camY < 0) camY = 0;
+    if(camY > (rows*TILESIZE - CAMERA_HEIGHT*TILESIZE)) camY = rows*TILESIZE - CAMERA_HEIGHT*TILESIZE;
+
+    
+    const SDL_Rect cameraRect = {camX, camY, CAMERA_WIDTH*TILESIZE, CAMERA_HEIGHT*TILESIZE};
+    const SDL_Rect screenRect = {0,0,CAMERA_WIDTH*TILESIZE,CAMERA_HEIGHT*TILESIZE};
+
+    SDL_RenderCopy(renderer, tempTexture, &cameraRect, &screenRect);
 
     // Present to screen
     SDL_RenderPresent(renderer);
+
+    free(tempTexture);
 }
 
 int main(int argc, char ** argv)
@@ -193,15 +240,14 @@ int main(int argc, char ** argv)
     createDungeon();
     spawnPlayer();
 
-    while (1)
+    while (handleEvents())
     {
-        if (handleEvents() == 0) break;
         render();
     }
 
-    SDL_DestroyTexture(mapTexture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow( window );
+    //SDL_DestroyTexture(mapTexture);
+    //SDL_DestroyRenderer(renderer);
+    //SDL_DestroyWindow(window);
     SDL_Quit();
 
     return 0;
