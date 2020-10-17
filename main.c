@@ -49,7 +49,7 @@ void initSDL()
         SDL_Quit();
         exit(2);
     }
-    //SDL_RenderSetIntegerScale(renderer, 1);
+    SDL_RenderSetIntegerScale(renderer, 1);
     SDL_RenderSetLogicalSize(renderer, CAMERA_WIDTH*TILESIZE,CAMERA_HEIGHT*TILESIZE);
 
     mapTexture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, cols*TILESIZE, rows*TILESIZE);
@@ -123,6 +123,21 @@ void spawnPlayer()
     }
 }
 
+typedef struct Entity
+{
+    int x;
+    int y;
+} Entity;
+
+void spawnEntities()
+{
+    struct Entity e;
+    e.x = 0;
+    e.y = 0;
+}
+//-------------------------------------------------------------------------------------
+// From here on out all functions are ran in the gameloop, so performance is important!
+//-------------------------------------------------------------------------------------
 void moveEntities()
 {
 
@@ -145,7 +160,8 @@ void movePlayer(int direction)
     if (direction == EAST)
         if(map[player->y][player->x + 1] != WALL)
             player->x = player->x + 1;
-
+    
+    // When the player has moved, the other entities get a turn.
     moveEntities();
 }
 
@@ -198,38 +214,40 @@ void render()
     //---------------------------------------------------------------------------------------------------
 
     //Copy map to temp texture.
-    const SDL_Rect mapRect = {0,0, cols*TILESIZE,rows*TILESIZE};
-    SDL_RenderCopy(renderer, mapTexture,&mapRect,&mapRect);
-
+    {
+        const SDL_Rect mapRect = {0,0, cols*TILESIZE,rows*TILESIZE};
+        SDL_RenderCopy(renderer, mapTexture,&mapRect,&mapRect);
+    }
     // Render player
-    const SDL_Rect bmpRect = {0,0,TILESIZE,TILESIZE};
-    const SDL_Rect destRect2 = {(player->x)*TILESIZE,(player->y)*TILESIZE,TILESIZE,TILESIZE};
-    SDL_RenderCopy(renderer, textures[PLAYERTEX], &bmpRect, &destRect2);
-
+    {
+        const SDL_Rect bmpRect = {0,0,TILESIZE,TILESIZE};
+        const SDL_Rect destRect = {(player->x)*TILESIZE,(player->y)*TILESIZE,TILESIZE,TILESIZE};
+        SDL_RenderCopy(renderer, textures[PLAYERTEX], &bmpRect, &destRect);
+    }
 
     // Future render calls render to renderer itself again.
     SDL_SetRenderTarget(renderer, 0);
     //---------------------------------------------------------------------------------------------------
-    
-    // Determine camera location (incl. clamping boundaries)
 
-    int camX = player->x*TILESIZE - ((CAMERA_WIDTH*TILESIZE) / 2);
-    if(camX < 0) camX = 0;
-    if (camX > (cols*TILESIZE - CAMERA_WIDTH*TILESIZE)) camX = cols*TILESIZE - CAMERA_WIDTH*TILESIZE;
-    int camY = player->y*TILESIZE - ((CAMERA_HEIGHT*TILESIZE) / 2);
-    if (camY < 0) camY = 0;
-    if(camY > (rows*TILESIZE - CAMERA_HEIGHT*TILESIZE)) camY = rows*TILESIZE - CAMERA_HEIGHT*TILESIZE;
+    // Render part of temp texture, to scroll with the player as a camera.
+    {
+        // Determine camera location (incl. clamping boundaries)
+        int camX = player->x*TILESIZE - ((CAMERA_WIDTH*TILESIZE) / 2);
+        if(camX < 0) camX = 0;
+        if (camX > (cols*TILESIZE - CAMERA_WIDTH*TILESIZE)) camX = cols*TILESIZE - CAMERA_WIDTH*TILESIZE;
+        int camY = player->y*TILESIZE - ((CAMERA_HEIGHT*TILESIZE) / 2);
+        if (camY < 0) camY = 0;
+        if(camY > (rows*TILESIZE - CAMERA_HEIGHT*TILESIZE)) camY = rows*TILESIZE - CAMERA_HEIGHT*TILESIZE;
 
-    
-    const SDL_Rect cameraRect = {camX, camY, CAMERA_WIDTH*TILESIZE, CAMERA_HEIGHT*TILESIZE};
-    const SDL_Rect screenRect = {0,0,CAMERA_WIDTH*TILESIZE,CAMERA_HEIGHT*TILESIZE};
 
-    SDL_RenderCopy(renderer, tempTexture, &cameraRect, &screenRect);
-
+        const SDL_Rect cameraRect = {camX, camY, CAMERA_WIDTH*TILESIZE, CAMERA_HEIGHT*TILESIZE};
+        const SDL_Rect screenRect = {0,0,CAMERA_WIDTH*TILESIZE,CAMERA_HEIGHT*TILESIZE};
+        SDL_RenderCopy(renderer, tempTexture, &cameraRect, &screenRect);
+    }
     // Present to screen
     SDL_RenderPresent(renderer);
 
-    free(tempTexture);
+    SDL_DestroyTexture(tempTexture);
 }
 
 int main(int argc, char ** argv)
