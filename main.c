@@ -177,9 +177,9 @@ void spawnPlayer()
     player->c = sprinkle();
 }
 
-void sprinkleEntities()
+void sprinkleEntities(int amount)
 {
-    for(int i = 0; i < 5; i++)
+    for(int i = 0; i < amount; i++)
     {
         e1 = malloc(sizeof(struct listitem));	/* Insert at the head. */
         e1->entity.texture = ENEMYTEX;
@@ -196,6 +196,11 @@ void moveEntities()
     distanceMap = malloc(rows * sizeof *distanceMap);
     for (int i=0; i < rows; i++)
         distanceMap[i] = malloc(cols * sizeof *distanceMap[i]);
+
+    // Zero memory just in case
+    for (int i=0; i < rows; i++)
+        for(int j=0; j < cols; j++)
+            distanceMap[i][j] = 0;
 
     // Generate direction map.
     flood(map, distanceMap, player->c.y, player->c.x);
@@ -219,6 +224,8 @@ void moveEntities()
             ep->entity.c.y = c.y;
         }
     }
+    for(int i = 0; i < rows; i++)
+        free(distanceMap[i]);
     free(distanceMap);
 }
 
@@ -341,15 +348,15 @@ void render()
 
 int main(int argc, char ** argv)
 {
-    srand(time(0));
-    initSDL();
-    loadTextures();
-    createDungeon();
-    spawnPlayer();
-    LIST_INIT(&entities);/* Initialize list. */
-    sprinkleEntities();
+    srand(time(0)); // Initialize (seed) randomizer with current time.
+    initSDL(); // Create screen, etc.
+    loadTextures(); // Load in textures to the GPU.
+    createDungeon(); // Generate random map and create a texture of it for rendering.
+    spawnPlayer(); // Spawn player in random location in the map.
+    LIST_INIT(&entities); //Initialize the (global) list of enemies.
+    sprinkleEntities(5); // Spawn (x amount of) enemies in random locations in the map.
 
-    while (handleEvents())
+    while (handleEvents()) // As long as there's no quit event, handle other events and do..
     {
         render();
     }
