@@ -32,6 +32,7 @@ typedef struct Entity
 {
     coord c;
     int damage;
+    int health;
     int texture;
 } Entity;
 
@@ -121,7 +122,7 @@ void loadTextures()
     SDL_FreeSurface(bmps2);
     textures[PLAYERTEX] = bmpt2;
 
-    //Make player texture
+    //Make snail texture
     SDL_Surface *bmps3 = SDL_LoadBMP("img/snail.bmp");
     SDL_Texture *bmpt3 = SDL_CreateTextureFromSurface(renderer, bmps3);
     SDL_FreeSurface(bmps3);
@@ -131,15 +132,20 @@ void loadTextures()
 // Tests wether a coordinate is free to spawn/walk on or not.
 int freeCoord(coord c)
 {
-
     if(map[c.y][c.x] != FLOOR) return 0;
     if(player->c.x == c.x && player->c.y == c.y) return 0;
+    
     LIST_FOREACH(ep, &entities, listitems)
-    {
-        coord ec = ep->entity.c;
-        if(ec.x == c.x && ec.y == c.y) return 0;
-    }
+        if(ep->entity.c.x == c.x && ep->entity.c.y == c.y) return 0;
+    
     return 1;
+}
+int freeCoordXY(int x, int y)
+{
+    coord a;
+    a.x = x;
+    a.y = y;
+    return freeCoord(a);
 }
 
 // Return a coord where an entity (incl. player) could spawn
@@ -176,25 +182,54 @@ void sprinkleEntities()
 //-------------------------------------------------------------------------------------
 void moveEntities()
 {
+    int **distanceMap;
+    distanceMap = malloc(rows * sizeof *distanceMap);
+    for (int i=0; i < rows; i++)
+        distanceMap[i] = malloc(cols * sizeof *distanceMap[i]);
 
+    // Generate direction map.
+    flood(map, distanceMap, player->c.y, player->c.x);
+
+    // Go towards the player.
+    /*
+    LIST_FOREACH(ep, &entities, listitems)
+    {
+        int direction = distanceMap[ep->entity.c.y][ep->entity.c.x];
+        coord c = {ep->entity.c.x,ep->entity.c.y};
+
+        switch(direction){
+            case NORTH: --c.y; break;
+            case SOUTH: ++c.y; break;
+            case WEST: --c.x; break;
+            case EAST: ++c.y; break;
+        }
+
+        if(freeCoord(c))
+        {
+            ep->entity.c.x = c.x;
+            ep->entity.c.y = c.y;
+        }
+    }
+    */
+    free(distanceMap);
 }
 
 void movePlayer(int direction)
 {
     if (direction == NORTH)
-        if(map[player->c.y - 1][player->c.x] != WALL)
+        if(freeCoordXY(player->c.x, player->c.y - 1))
             player->c.y = player->c.y - 1;
 
     if (direction == SOUTH)
-        if(map[player->c.y + 1][player->c.x] != WALL)
+        if(freeCoordXY(player->c.x, player->c.y + 1))
             player->c.y = player->c.y + 1;
 
     if (direction == WEST)
-        if(map[player->c.y][player->c.x - 1] != WALL)
+        if(freeCoordXY(player->c.x - 1, player->c.y))
             player->c.x = player->c.x - 1;
 
     if (direction == EAST)
-        if(map[player->c.y][player->c.x + 1] != WALL)
+        if(freeCoordXY(player->c.x + 1, player->c.y))
             player->c.x = player->c.x + 1;
 
     // When the player has moved, the other entities get a turn.

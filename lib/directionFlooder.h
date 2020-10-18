@@ -16,7 +16,7 @@ void enque(const int row, const int col)
     SIMPLEQ_INSERT_TAIL(&coordQ, c1, cNodes);
     c1->c.y = row;
     c1->c.x = col;
-    printf("Enqued %d,%d ", row, col);
+    //printf("Enqued %d,%d ", row, col);
 }
 
 struct coord deque()
@@ -25,7 +25,7 @@ struct coord deque()
         SIMPLEQ_REMOVE_HEAD(&coordQ, cNodes);
         struct coord c = c1->c;
         free(c1);
-        printf("Dequed %d,%d ", c.y, c.x);
+        //printf("Dequed %d,%d ", c.y, c.x);
         return c;
 }
 
@@ -76,7 +76,7 @@ void flood(int **map, int **result, const int sourceRow, const int sourceCol)
         // Add surrounding non-explored FLOORs to frontier
         addSurroundingToQ(map, result, c);
 
-        puts("coords in queue:");
-        SIMPLEQ_FOREACH(c2, &coordQ, cNodes) printf("%d,%d\n",c2->c.y, c2->c.x);
+        //puts("coords in queue:");
+        //SIMPLEQ_FOREACH(c2, &coordQ, cNodes) printf("%d,%d\n",c2->c.y, c2->c.x);
     }
 }
