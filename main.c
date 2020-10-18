@@ -20,7 +20,8 @@ const int rows = 50, cols = 100; // Size of map
 int **map; // Global map
 
 SDL_Texture *textures[10];
-enum texture{WALLTEX = 0, PLAYERTEX=1, ENEMYTEX=2};
+SDL_Texture *walltextures[3];
+enum texture{PLAYERTEX, ENEMYTEX};
 
 struct Player
 {
@@ -102,7 +103,7 @@ void createDungeon()
             if(map[i][j] == WALL){
                 destRect.x = TILESIZE*j;
                 destRect.y = TILESIZE*i;
-                SDL_RenderCopy(renderer, textures[WALLTEX], &bmpRect, &destRect);
+                SDL_RenderCopy(renderer, walltextures[rand()%3], &bmpRect, &destRect);
             }
     // Future render calls render to renderer itself again.
     SDL_SetRenderTarget(renderer, 0);
@@ -114,7 +115,15 @@ void loadTextures()
     SDL_Surface *bmps = SDL_LoadBMP("img/wall.bmp");
     SDL_Texture *bmpt = SDL_CreateTextureFromSurface(renderer, bmps);
     SDL_FreeSurface(bmps);
-    textures[WALLTEX] = bmpt;
+     // Make wall texture
+    SDL_Surface *bmps4 = SDL_LoadBMP("img/wall2.bmp");
+    SDL_Texture *bmpt4 = SDL_CreateTextureFromSurface(renderer, bmps4);
+    SDL_FreeSurface(bmps4);
+      // Make wall texture
+    SDL_Surface *bmps5 = SDL_LoadBMP("img/wall3.bmp");
+    SDL_Texture *bmpt5 = SDL_CreateTextureFromSurface(renderer, bmps5);
+    SDL_FreeSurface(bmps5);
+    walltextures[0] = bmpt;  walltextures[1] = bmpt4;   walltextures[2] = bmpt5;
 
     //Make player texture
     SDL_Surface *bmps2 = SDL_LoadBMP("img/player.bmp");
