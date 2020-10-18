@@ -40,7 +40,7 @@ LIST_HEAD(listhead, listitem) entities;
 struct listitem {
     Entity entity;
     LIST_ENTRY(listitem) listitems;
-} *e1, *e2, *ep;
+} *e1, *e2, *ep, *ep2;
 ///////////////////////////////////////
 
 void initSDL()
@@ -135,11 +135,12 @@ int freeCoord(coord c)
     if(map[c.y][c.x] != FLOOR) return 0;
     if(player->c.x == c.x && player->c.y == c.y) return 0;
     
-    LIST_FOREACH(ep, &entities, listitems)
-        if(ep->entity.c.x == c.x && ep->entity.c.y == c.y) return 0;
+    LIST_FOREACH(ep2, &entities, listitems)
+        if(ep2->entity.c.x == c.x && ep2->entity.c.y == c.y) return 0;
     
     return 1;
 }
+
 int freeCoordXY(int x, int y)
 {
     coord a;
@@ -191,26 +192,24 @@ void moveEntities()
     flood(map, distanceMap, player->c.y, player->c.x);
 
     // Go towards the player.
-    /*
     LIST_FOREACH(ep, &entities, listitems)
     {
         int direction = distanceMap[ep->entity.c.y][ep->entity.c.x];
-        coord c = {ep->entity.c.x,ep->entity.c.y};
-
+        coord c;
+        c.x = ep->entity.c.x;
+        c.y = ep->entity.c.y;
         switch(direction){
             case NORTH: --c.y; break;
             case SOUTH: ++c.y; break;
             case WEST: --c.x; break;
-            case EAST: ++c.y; break;
+            case EAST: ++c.x; break;
         }
-
         if(freeCoord(c))
         {
             ep->entity.c.x = c.x;
             ep->entity.c.y = c.y;
         }
     }
-    */
     free(distanceMap);
 }
 
