@@ -23,19 +23,16 @@ SDL_Texture *textures[10];
 SDL_Texture *walltextures[3];
 enum texture{PLAYERTEX, ENEMYTEX};
 
-struct Player
-{
-    coord c;
-} *player;
-
-///Enemy related////////////////////////
 typedef struct Entity
 {
     coord c;
     int damage;
     int health;
     int texture;
+    int player;
 } Entity;
+
+Entity *player;
 
 LIST_HEAD(listhead, listitem) entities;
 struct listitem {
@@ -115,11 +112,11 @@ void loadTextures()
     SDL_Surface *bmps = SDL_LoadBMP("img/wall.bmp");
     SDL_Texture *bmpt = SDL_CreateTextureFromSurface(renderer, bmps);
     SDL_FreeSurface(bmps);
-     // Make wall texture
+    // Make wall texture
     SDL_Surface *bmps4 = SDL_LoadBMP("img/wall2.bmp");
     SDL_Texture *bmpt4 = SDL_CreateTextureFromSurface(renderer, bmps4);
     SDL_FreeSurface(bmps4);
-      // Make wall texture
+    // Make wall texture
     SDL_Surface *bmps5 = SDL_LoadBMP("img/wall3.bmp");
     SDL_Texture *bmpt5 = SDL_CreateTextureFromSurface(renderer, bmps5);
     SDL_FreeSurface(bmps5);
@@ -143,19 +140,12 @@ int freeCoord(coord c)
 {
     if(map[c.y][c.x] != FLOOR) return 0;
     if(player->c.x == c.x && player->c.y == c.y) return 0;
-    
+
+
     LIST_FOREACH(ep2, &entities, listitems)
         if(ep2->entity.c.x == c.x && ep2->entity.c.y == c.y) return 0;
-    
-    return 1;
-}
 
-int freeCoordXY(int x, int y)
-{
-    coord a;
-    a.x = x;
-    a.y = y;
-    return freeCoord(a);
+    return 1;
 }
 
 // Return a coord where an entity (incl. player) could spawn
@@ -173,7 +163,11 @@ coord sprinkle ()
 
 void spawnPlayer()
 {
-    player = malloc(sizeof(struct Player));
+    player = malloc(sizeof(Entity));
+    player->damage = 1;
+    player->health = 1;
+    player->player = 1;
+    player->texture = PLAYERTEX;
     player->c = sprinkle();
 }
 
@@ -183,6 +177,9 @@ void sprinkleEntities(int amount)
     {
         e1 = malloc(sizeof(struct listitem));	/* Insert at the head. */
         e1->entity.texture = ENEMYTEX;
+        e1->entity.damage = 1;
+        e1->entity.health = 1;
+        e1->entity.player = 0;
         e1->entity.c = sprinkle();
         LIST_INSERT_HEAD(&entities, e1, listitems);
     }
@@ -190,6 +187,55 @@ void sprinkleEntities(int amount)
 //-------------------------------------------------------------------------------------
 // From here on out all functions are ran in the gameloop, so performance is important!
 //-------------------------------------------------------------------------------------
+
+void kill(Entity *entity)
+{
+    puts("killing..");
+    if (entity->player)
+        SDL_Quit();
+    else
+    for(ep2 = LIST_FIRST(&entities); ep2 != NULL; ep2 = LIST_NEXT(ep2, listitems))
+        if(ep2->entity.c.x == entity->c.x && ep2->entity.c.y == entity->c.y)
+        {
+            LIST_REMOVE(ep2, listitems);
+            free(ep2);
+            break;
+        }
+}
+
+void attack(coord c, Entity *entity)
+{
+    if(map[c.y][c.x] != FLOOR) return;
+    puts("Attacking!");
+    printf("%d", entity->player);
+
+    if(c.x == player->c.x && c.y == player->c.y)
+    {
+        player->health -= entity->damage;
+        if (player->health <= 0) kill(player);
+    }
+
+    LIST_FOREACH(ep2, &entities, listitems)
+        if(ep2->entity.c.x == c.x && ep2->entity.c.y == c.y)
+        {
+            ep2->entity.health -= entity->damage;
+            if (ep2->entity.health <= 0) kill(&(ep2->entity));
+        }
+}
+
+
+void moveOrAttack(coord c, Entity *entity)
+{
+    puts ("checking if coord is free");
+    if(freeCoord(c))
+    {
+        puts ("coord is free");
+        entity->c.x = c.x;
+        entity->c.y = c.y;
+    }
+    else attack(c, entity);
+}
+
 void moveEntities()
 {
     int **distanceMap;
@@ -218,11 +264,7 @@ void moveEntities()
             case WEST: --c.x; break;
             case EAST: ++c.x; break;
         }
-        if(freeCoord(c))
-        {
-            ep->entity.c.x = c.x;
-            ep->entity.c.y = c.y;
-        }
+        moveOrAttack(c, &ep->entity);
     }
     for(int i = 0; i < rows; i++)
         free(distanceMap[i]);
@@ -231,22 +273,19 @@ void moveEntities()
 
 void movePlayer(int direction)
 {
-    if (direction == NORTH)
-        if(freeCoordXY(player->c.x, player->c.y - 1))
-            player->c.y = player->c.y - 1;
+    puts("Moving player");
 
-    if (direction == SOUTH)
-        if(freeCoordXY(player->c.x, player->c.y + 1))
-            player->c.y = player->c.y + 1;
+    coord c;
+    c.x = player->c.x;
+    c.y = player->c.y;
+    switch(direction){
+        case NORTH: --c.y; break;
+        case SOUTH: ++c.y; break;
+        case WEST: --c.x; break;
+        case EAST: ++c.x; break;
+    }
 
-    if (direction == WEST)
-        if(freeCoordXY(player->c.x - 1, player->c.y))
-            player->c.x = player->c.x - 1;
-
-    if (direction == EAST)
-        if(freeCoordXY(player->c.x + 1, player->c.y))
-            player->c.x = player->c.x + 1;
-
+    moveOrAttack(c, player);
     // When the player has moved, the other entities get a turn.
     moveEntities();
 }
