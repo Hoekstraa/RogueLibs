@@ -6,7 +6,7 @@
 SIMPLEQ_HEAD(simplehead, cNode) coordQ = SIMPLEQ_HEAD_INITIALIZER(coordQ);
 struct cNode
 {
-    struct coord c;
+    coord c;
     SIMPLEQ_ENTRY(cNode) cNodes;
 } *c1, *c2;
 
@@ -19,17 +19,17 @@ void enque(const int row, const int col)
     //printf("Enqued %d,%d ", row, col);
 }
 
-struct coord deque()
+coord deque()
 {
-        c1 = SIMPLEQ_FIRST(&coordQ);
-        SIMPLEQ_REMOVE_HEAD(&coordQ, cNodes);
-        struct coord c = c1->c;
-        free(c1);
-        //printf("Dequed %d,%d ", c.y, c.x);
-        return c;
+    c1 = SIMPLEQ_FIRST(&coordQ);
+    SIMPLEQ_REMOVE_HEAD(&coordQ, cNodes);
+    struct coord c = c1->c;
+    free(c1);
+    //printf("Dequed %d,%d ", c.y, c.x);
+    return c;
 }
 
-/// If a tile is does not have a direction yet, set the direction and add it to the frontier
+/// If a tile does not have a direction yet, set the direction and add it to the frontier
 void addSurroundingToQ(int **map, int **result, const struct coord c)
 {
     int row = c.y, col = c.x;

@@ -36,6 +36,14 @@ int main()
         for(int j = 0; j < cols; j++)
             if(distanceMap[i][j] == 0)
                 printf("█");
+            else if(distanceMap[i][j] == 1)
+                printf("");
+            else if(distanceMap[i][j] == 2)
+                printf("");
+            else if(distanceMap[i][j] == 3)
+                printf("");
+            else if(distanceMap[i][j] == 4)
+                printf("");
             else
                 printf("%d", distanceMap[i][j]);
         printf("\n");
